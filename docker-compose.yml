@@ -1,0 +1,63 @@
+version: "3"
+    
+services:
+    webserver:
+        build: 
+          context: .
+          dockerfile: ./dockerfiles/apache/Dockerfile
+        image: alien/apache
+        container_name: apache2
+        restart: always
+        volumes: 
+          - ./app:/var/www
+          - ./dockerfiles/apache/sites-available/:/etc/apache2/sites-available
+          - ./dockerfiles/apache/apache2.conf:/etc/apache2/apache2.conf
+        ports:
+          - "80:80"
+          - "443:443"  
+        tty: true
+        networks:    
+          - app-network              
+    php:
+        build:
+            context: .
+            dockerfile: ./dockerfiles/php/Dockerfile
+        image: alien/php
+        container_name: phpapp
+        restart: unless-stopped
+        tty: true
+        environment:
+            SERVICE_NAME: app
+            SERVICE_TAGS: dev
+        working_dir: /var/www
+        volumes:
+            - ./app:/var/www/
+        networks:
+            - app-network
+        depends_on:
+            - db 
+    db:
+        image: mysql:5.7
+        volumes:
+          - dbdata:/var/lib/mysql
+        restart: always
+        ports:
+          - 3306:3306              
+        environment:
+            MYSQL_ROOT_PASSWORD: passme
+            MYSQL_DATABASE: alien
+            MYSQL_USER: alien
+            MYSQL_PASSWORD: passme
+        networks:
+        - app-network       
+    adminer:
+        image: adminer
+        restart: always
+        ports:
+        - 8080:8080
+networks:
+  app-network:
+    driver: bridge
+volumes:
+  dbdata:
+    driver: local 
