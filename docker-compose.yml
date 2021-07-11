@@ -20,7 +20,21 @@ services:
           - app-network       
         depends_on:
           - php
-          - db                 
+          - db
+    nginx:
+        image: nginx:alpine
+        container_name: nginx
+        restart: unless-stopped
+        ports:
+          - 8000:80
+        volumes:
+          - ./app:/var/www
+          - ./dockerfiles/nginx/sites/:/etc/nginx/conf.d/
+        networks:
+          - app-network                           
+        depends_on: 
+          - php
+          - db 
     php:
         build:
             context: .
@@ -46,6 +60,7 @@ services:
         volumes:
           - dbdata:/var/lib/mysql
         restart: always
+        container_name: mysql
         ports:
           - 3306:3306              
         environment:
@@ -60,6 +75,32 @@ services:
         restart: always
         ports:
         - 8080:8080
+    worker:
+      build: 
+        context: .
+        dockerfile: ./dockerfiles/worker/Dockerfile
+      container_name: phpworker
+      volumes:
+          - "./app:/var/www"
+          - "./dockerfiles/worker/conf/supervisord.conf:/etc/supervisor/supervisord.conf"
+          - "./dockerfiles/worker/conf/app.conf:/etc/supervisor/conf.d/app.conf"
+      command: ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]        
+    rabbitmq:
+      build: 
+        context: .
+        dockerfile: ./dockerfiles/rabbitmq/Dockerfile
+      container_name: rabbitmq
+      environment:
+        - RABBITMQ_DEFAULT_USER=admin
+        - RABBITMQ_DEFAULT_PASS=admin
+      ports:
+        - "5672:5672"
+        - "15672:15672"
+        - "15671:15671"        
+      depends_on: 
+        - php
+      networks: 
+        - app-network
 networks:
   app-network:
     driver: bridge

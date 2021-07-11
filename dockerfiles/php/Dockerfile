@@ -1,4 +1,4 @@
-FROM php:7.4-fpm-alpine
+FROM php:8-fpm-alpine
 
 WORKDIR /var/www
 
@@ -24,4 +24,4 @@ RUN apk add --no-cache \
 
 RUN apk add libzip-dev
 
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+RUN docker-php-ext-install pdo_mysql exif pcntl bcmath zip
